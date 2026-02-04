@@ -1,4 +1,4 @@
-package de.leaguemaster.util;
+package de.leaguemaster.infrastructure;
 
 public class Logger {
     public static void log(String message) {
