@@ -32,7 +32,7 @@ public class CreateLeagueWizard implements PendingInteraction {
                 System.out.print("Bitte Zahl eingeben: ");
                 return false;
             }
-            var id = useCase.execute(new CreateLeagueRequest(name)).id();
+            String id = useCase.execute(new CreateLeagueRequest(name)).id();
             ctx.setCurrentLeagueId(id);
             System.out.println("Liga erstellt mit ID: " + id);
             return true; // fertig

@@ -11,11 +11,6 @@ import java.util.*;
  * - Commands registrieren (Name, Beschreibung, Aliase)
  * - Commands anhand des Namens auflösen
  * - Help-Text generieren
- *
- * WICHTIG (Clean Architecture):
- * - Enthält KEINE Businesslogik
- * - Wird vom CommandParser benutzt
- * - GameModes registrieren hier ihre Commands
  */
 public class CommandRegistry {
 
