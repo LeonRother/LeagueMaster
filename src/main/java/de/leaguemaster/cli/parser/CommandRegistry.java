@@ -28,8 +28,8 @@ public class CommandRegistry {
      *
      * @param name        kanonischer Name (z. B. "create-league")
      * @param command     Command-Implementierung
-     * @param description kurze Beschreibung für "help"
-     * @param aliasNames  optionale Aliase (z. B. "cl", "new-league")
+     * @param description kurze Beschreibung
+     * @param aliasNames  optionale Aliase (z. B. "cl", "create-league")
      */
     public void register(String name,
                          Command command,

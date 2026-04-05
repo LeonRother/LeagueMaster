@@ -5,12 +5,17 @@ import de.leaguemaster.cli.parser.PendingInteraction;
 
 public class CommandContext {
     private String currentLeagueId;
+    private boolean teamsConfirmed;
 
     // Multi-step interaction
     private PendingInteraction pending;
 
     public String getCurrentLeagueId() { return currentLeagueId; }
     public void setCurrentLeagueId(String id) { this.currentLeagueId = id; }
+
+    public boolean areTeamsConfirmed() { return teamsConfirmed; }
+    public void confirmTeams() { this.teamsConfirmed = true; }
+    public void resetTeamsConfirmation() { this.teamsConfirmed = false; }
 
     public boolean hasPendingInteraction() { return pending != null; }
     public void startInteraction(PendingInteraction i) { this.pending = i; }
