@@ -84,7 +84,7 @@ public class LeagueMode implements GameMode {
                 ),
                 new CommandSpec(
                         "match",
-                        new MatchCommand(recordMatchResultService, leagueQueryService),
+                        new MatchCommand(recordMatchResultService, leagueQueryService, showTableService),
                         "Match-Befehle (list, record).",
                         "m"
                 ),

@@ -72,7 +72,7 @@ public class ShowTableService {
 
         rows.sort(Comparator
                 .comparingInt(TableRow::points).reversed()
-                .thenComparingInt(r -> (r.goalsFor() - r.goalsAgainst())).reversed()
+                .thenComparing(r -> (r.goalsFor() - r.goalsAgainst()), Comparator.reverseOrder())
                 .thenComparing(TableRow::teamName));
 
         return rows;

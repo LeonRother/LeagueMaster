@@ -2,21 +2,31 @@ package de.leaguemaster.cli.commands;
 
 import de.leaguemaster.application.usecase.LeagueQueryService;
 import de.leaguemaster.application.usecase.RecordMatchResultService;
+import de.leaguemaster.application.usecase.ShowTableService;
 import de.leaguemaster.cli.Command;
 import de.leaguemaster.cli.CommandContext;
 import de.leaguemaster.cli.modes.CommandResult;
+import de.leaguemaster.cli.output.TableRenderer;
+import de.leaguemaster.cli.output.WinnerRenderer;
 import de.leaguemaster.cli.parser.CommandArgs;
+import de.leaguemaster.application.dto.TableRow;
 import de.leaguemaster.domain.model.League;
 import de.leaguemaster.domain.model.Match;
 import de.leaguemaster.domain.model.Team;
 
+import java.util.List;
+
 public class MatchCommand implements Command {
     private final RecordMatchResultService recordMatchResultService;
     private final LeagueQueryService leagueQueryService;
+    private final ShowTableService showTableService;
 
-    public MatchCommand(RecordMatchResultService recordMatchResultService, LeagueQueryService leagueQueryService) {
+    public MatchCommand(RecordMatchResultService recordMatchResultService,
+                        LeagueQueryService leagueQueryService,
+                        ShowTableService showTableService) {
         this.recordMatchResultService = recordMatchResultService;
         this.leagueQueryService = leagueQueryService;
+        this.showTableService = showTableService;
     }
 
     @Override
@@ -58,8 +68,12 @@ public class MatchCommand implements Command {
                 sb.append("Ergebnis gespeichert.");
 
                 if (afterRound == -1) {
-                    sb.append(" Alle Ergebnisse erfasst. Naechster Schritt: table show");
-                    return CommandResult.ok(sb.toString());
+                    sb.append(" Alle Ergebnisse erfasst.\n");
+                    List<TableRow> rows = showTableService.execute(ctx.getCurrentLeagueId());
+                    sb.append(TableRenderer.render(rows));
+                    sb.append("\n");
+                    sb.append(WinnerRenderer.render(rows));
+                    return CommandResult.ok(sb.toString().trim());
                 }
 
                 if (beforeRound != -1 && afterRound != beforeRound) {
