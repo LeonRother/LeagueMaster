@@ -30,4 +30,18 @@ public class ScheduleMatchesService {
         leagueRepository.save(league);
         return created;
     }
+
+    public List<Match> knockout(String leagueId) {
+        Optional<League> leagueOpt = leagueRepository.findById(leagueId);
+        if (leagueOpt.isEmpty()) {
+            throw new IllegalArgumentException("Liga nicht gefunden.");
+        }
+        League league = leagueOpt.get();
+        if (league.hasMatches()) {
+            throw new IllegalStateException("Spielplan existiert bereits.");
+        }
+        List<Match> created = league.scheduleKnockout();
+        leagueRepository.save(league);
+        return created;
+    }
 }

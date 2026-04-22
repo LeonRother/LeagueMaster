@@ -25,6 +25,7 @@ public class CreateLeagueWizard implements PendingInteraction {
             }
             String id = useCase.execute(new CreateLeagueRequest(name)).id();
             ctx.setCurrentLeagueId(id);
+            ctx.resetTeamsConfirmation();
             System.out.println("Liga erstellt. ID: " + id);
             System.out.println("Naechster Schritt: mindestens 4 Teams hinzufuegen mit team add --name <TEAM>. Dann team done");
             return true;

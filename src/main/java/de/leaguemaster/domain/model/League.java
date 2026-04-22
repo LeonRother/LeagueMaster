@@ -10,14 +10,20 @@ import java.util.UUID;
 public class League {
     private final String id;
     private final String name;
+    private final CompetitionFormat format;
     private final Map<String, Team> teams = new LinkedHashMap<>();
     private final Map<String, Match> matches = new LinkedHashMap<>();
     private final List<List<String>> rounds = new ArrayList<>();
     private int nextMatchNumber = 1;
 
     public League(String name) {
+        this(name, CompetitionFormat.LEAGUE);
+    }
+
+    public League(String name, CompetitionFormat format) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
+        this.format = format;
     }
 
     public String id() {
@@ -26,6 +32,10 @@ public class League {
 
     public String name() {
         return name;
+    }
+
+    public CompetitionFormat format() {
+        return format;
     }
 
     public Map<String, Team> teams() {
@@ -65,6 +75,7 @@ public class League {
     }
 
     public List<Match> scheduleRoundRobin() {
+        ensureFormat(CompetitionFormat.LEAGUE);
         List<Team> list = new ArrayList<>(teams.values());
         if (list.size() < 2) {
             return Collections.emptyList();
@@ -102,8 +113,32 @@ public class League {
         return created;
     }
 
+    public List<Match> scheduleKnockout() {
+        ensureFormat(CompetitionFormat.KNOCKOUT);
+        validateKnockoutTeamCount();
+        List<Team> participants = new ArrayList<>(teams.values());
+        return createKnockoutRound(participants);
+    }
+
     public Match findMatch(String matchId) {
         return matches.get(matchId);
+    }
+
+    public Match recordMatchResult(String matchId, Score score) {
+        Match match = matches.get(matchId);
+        if (match == null) {
+            throw new IllegalArgumentException("Match nicht gefunden.");
+        }
+        if (format == CompetitionFormat.KNOCKOUT && score.home() == score.away()) {
+            throw new IllegalArgumentException("Im Knockout sind keine Unentschieden erlaubt.");
+        }
+
+        match.recordScore(score);
+
+        if (format == CompetitionFormat.KNOCKOUT) {
+            createNextKnockoutRoundIfReady();
+        }
+        return match;
     }
 
     public int totalRounds() {
@@ -135,5 +170,86 @@ public class League {
             }
         }
         return -1;
+    }
+
+    public Team champion() {
+        if (format != CompetitionFormat.KNOCKOUT || currentRoundIndex() != -1 || rounds.isEmpty()) {
+            return null;
+        }
+        List<Match> finalRound = round(rounds.size() - 1);
+        if (finalRound.size() != 1 || !finalRound.get(0).isPlayed()) {
+            return null;
+        }
+        Match finalMatch = finalRound.get(0);
+        String winnerId = finalMatch.score().home() > finalMatch.score().away()
+                ? finalMatch.homeTeamId()
+                : finalMatch.awayTeamId();
+        return teams.get(winnerId);
+    }
+
+    private void validateKnockoutTeamCount() {
+        int teamCount = teams.size();
+        if (teamCount < 2) {
+            throw new IllegalStateException("Mindestens 2 Teams erforderlich.");
+        }
+        if (!isPowerOfTwo(teamCount)) {
+            throw new IllegalStateException("Im Knockout muss die Teamanzahl eine Zweierpotenz sein (2, 4, 8, 16, ...).");
+        }
+    }
+
+    private boolean isPowerOfTwo(int value) {
+        return value > 0 && (value & (value - 1)) == 0;
+    }
+
+    private void ensureFormat(CompetitionFormat expectedFormat) {
+        if (format != expectedFormat) {
+            throw new IllegalStateException("Dieser Spielmodus unterstuetzt die Aktion nicht.");
+        }
+    }
+
+    private List<Match> createKnockoutRound(List<Team> participants) {
+        List<Match> created = new ArrayList<>();
+        List<String> roundMatchIds = new ArrayList<>();
+
+        int left = 0;
+        int right = participants.size() - 1;
+        while (left < right) {
+            Team home = participants.get(left++);
+            Team away = participants.get(right--);
+            String matchId = "M" + nextMatchNumber++;
+            Match match = new Match(matchId, home.id(), away.id());
+            matches.put(matchId, match);
+            created.add(match);
+            roundMatchIds.add(matchId);
+        }
+
+        if (!roundMatchIds.isEmpty()) {
+            rounds.add(roundMatchIds);
+        }
+        return created;
+    }
+
+    private void createNextKnockoutRoundIfReady() {
+        if (rounds.isEmpty()) {
+            return;
+        }
+
+        List<Match> currentRound = round(rounds.size() - 1);
+        if (currentRound.isEmpty() || currentRound.stream().anyMatch(match -> !match.isPlayed())) {
+            return;
+        }
+        if (currentRound.size() == 1) {
+            return;
+        }
+
+        List<Team> winners = new ArrayList<>();
+        for (Match match : currentRound) {
+            String winnerId = match.score().home() > match.score().away()
+                    ? match.homeTeamId()
+                    : match.awayTeamId();
+            winners.add(teams.get(winnerId));
+        }
+
+        createKnockoutRound(winners);
     }
 }

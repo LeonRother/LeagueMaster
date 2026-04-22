@@ -20,11 +20,7 @@ public class RecordMatchResultService {
             throw new IllegalArgumentException("Liga nicht gefunden.");
         }
         League league = leagueOpt.get();
-        Match match = league.findMatch(matchId);
-        if (match == null) {
-            throw new IllegalArgumentException("Match nicht gefunden.");
-        }
-        match.recordScore(new Score(home, away));
+        Match match = league.recordMatchResult(matchId, new Score(home, away));
         leagueRepository.save(league);
         return match;
     }

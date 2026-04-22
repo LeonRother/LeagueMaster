@@ -6,6 +6,7 @@ import de.leaguemaster.cli.Command;
 import de.leaguemaster.cli.CommandContext;
 import de.leaguemaster.cli.modes.CommandResult;
 import de.leaguemaster.cli.parser.CommandArgs;
+import de.leaguemaster.domain.model.CompetitionFormat;
 import de.leaguemaster.domain.model.League;
 import de.leaguemaster.domain.model.Team;
 
@@ -36,7 +37,9 @@ public class TeamCommand implements Command {
             }
             try {
                 Team team = addTeamService.execute(ctx.getCurrentLeagueId(), name);
-                return CommandResult.ok("Team hinzugefuegt: " + team.name() + "\nNaechster Schritt: weitere Teams hinzufuegen (mindestens 4), dann team done");
+                League league = leagueQueryService.byId(ctx.getCurrentLeagueId());
+                return CommandResult.ok("Team hinzugefuegt: " + team.name() + "\nNaechster Schritt: "
+                        + nextTeamStepMessage(league));
             } catch (IllegalStateException | IllegalArgumentException e) {
                 return CommandResult.invalid(e.getMessage());
             }
@@ -44,11 +47,12 @@ public class TeamCommand implements Command {
 
         if (action.equalsIgnoreCase("done")) {
             League league = leagueQueryService.byId(ctx.getCurrentLeagueId());
-            if (league.teams().size() < 4) {
-                return CommandResult.invalid("Mindestens 4 Teams erforderlich. Aktuell: " + league.teams().size());
+            int minimumTeams = minimumTeams(league);
+            if (league.teams().size() < minimumTeams) {
+                return CommandResult.invalid("Mindestens " + minimumTeams + " Teams erforderlich. Aktuell: " + league.teams().size());
             }
             ctx.confirmTeams();
-            return CommandResult.ok("Teams bestaetigt. Naechster Schritt: schedule round-robin");
+            return CommandResult.ok("Teams bestaetigt. Naechster Schritt: " + nextScheduleStep(league));
         }
 
         if (action.equalsIgnoreCase("list")) {
@@ -68,5 +72,17 @@ public class TeamCommand implements Command {
 
     private String helpText() {
         return "Verwendung: team add --name <TEAM> | team list | team done";
+    }
+
+    private int minimumTeams(League league) {
+        return league.format() == CompetitionFormat.KNOCKOUT ? 2 : 4;
+    }
+
+    private String nextScheduleStep(League league) {
+        return league.format() == CompetitionFormat.KNOCKOUT ? "schedule knockout" : "schedule round-robin";
+    }
+
+    private String nextTeamStepMessage(League league) {
+        return "weitere Teams hinzufuegen (mindestens " + minimumTeams(league) + "), dann team done";
     }
 }

@@ -27,6 +27,7 @@ public class LeagueCommand implements Command {
             if (name != null && !name.isBlank()) {
                 String id = createLeagueService.execute(new CreateLeagueRequest(name)).id();
                 ctx.setCurrentLeagueId(id);
+                ctx.resetTeamsConfirmation();
                 return CommandResult.ok("Liga erstellt. ID: " + id + "\nNaechste Schritte: mindestens 4 Teams hinzufuegen mit team add --name <TEAM>, dann team done, dann schedule round-robin");
             }
 

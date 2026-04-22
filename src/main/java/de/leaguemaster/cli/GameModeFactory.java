@@ -7,6 +7,7 @@ import de.leaguemaster.application.usecase.RecordMatchResultService;
 import de.leaguemaster.application.usecase.ScheduleMatchesService;
 import de.leaguemaster.application.usecase.ShowTableService;
 import de.leaguemaster.cli.modes.GameMode;
+import de.leaguemaster.cli.modes.KnockoutMode;
 import de.leaguemaster.cli.modes.LeagueMode;
 
 public class GameModeFactory {
@@ -32,7 +33,7 @@ public class GameModeFactory {
     }
 
     public boolean isSupported(GameModeType type) {
-        return type == GameModeType.LEAGUE;
+        return type == GameModeType.LEAGUE || type == GameModeType.KNOCKOUT;
     }
 
     public GameMode create(GameModeType type /*, ggf. Services */) {
@@ -47,7 +48,13 @@ public class GameModeFactory {
                         leagueQueryService
                 );
             case KNOCKOUT:
-//return new KnockoutMode(scanner /* , services... */);
+                return new KnockoutMode(
+                        createLeagueService,
+                        addTeamService,
+                        scheduleMatchesService,
+                        recordMatchResultService,
+                        leagueQueryService
+                );
             case GROUP_STAGE:
   //              return new GroupStageMode(scanner /* , services... */);
             default:

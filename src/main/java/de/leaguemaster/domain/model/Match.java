@@ -33,6 +33,9 @@ public class Match {
     }
 
     public void recordScore(Score score) {
+        if (isPlayed()) {
+            throw new IllegalStateException("Ergebnis wurde bereits eingetragen.");
+        }
         this.score = score;
     }
 }
