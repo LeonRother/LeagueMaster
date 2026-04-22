@@ -49,7 +49,7 @@ public class KnockoutFlowTest {
         League leagueAfterSemiFinals = leagueQueryService.byId(leagueId);
         Match finalMatch = leagueAfterSemiFinals.round(1).get(0);
         assertEquals(teams.get(0).id(), finalMatch.homeTeamId());
-        assertEquals(teams.get(3).id(), finalMatch.awayTeamId());
+        assertEquals(teams.get(2).id(), finalMatch.awayTeamId());
 
         recordMatchResultService.execute(leagueId, finalMatch.id(), 4, 1);
 

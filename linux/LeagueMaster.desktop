@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LeagueMaster
+Comment=Startet LeagueMaster in einem Terminal
+Exec=sh -c '"$(dirname "$1")/run-leaguemaster.sh"' dummy %k
+Terminal=true
+Categories=Game;Utility;
+Path=
