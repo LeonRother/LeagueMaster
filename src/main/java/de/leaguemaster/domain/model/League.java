@@ -66,43 +66,37 @@ public class League {
         return false;
     }
 
-    private String normalize(String name) {
-        return name == null ? "" : name.trim().toLowerCase();
-    }
-
     public boolean hasMatches() {
         return !matches.isEmpty();
     }
 
     public List<Match> scheduleRoundRobin() {
         ensureFormat(CompetitionFormat.LEAGUE);
-        List<Team> list = new ArrayList<>(teams.values());
-        if (list.size() < 2) {
+        List<Team> participants = new ArrayList<>(teams.values());
+        if (participants.size() < 2) {
             return Collections.emptyList();
         }
 
-        List<Team> rotation = new ArrayList<>(list);
+        List<Team> rotation = new ArrayList<>(participants);
         if (rotation.size() % 2 != 0) {
             rotation.add(null);
         }
 
-        int n = rotation.size();
-        int roundsCount = n - 1;
-        List<Match> created = new ArrayList<>();
+        int teamCount = rotation.size();
+        int roundsCount = teamCount - 1;
+        List<Match> createdMatches = new ArrayList<>();
 
-        for (int r = 0; r < roundsCount; r++) {
+        for (int roundIndex = 0; roundIndex < roundsCount; roundIndex++) {
             List<String> roundMatchIds = new ArrayList<>();
-            for (int i = 0; i < n / 2; i++) {
-                Team home = rotation.get(i);
-                Team away = rotation.get(n - 1 - i);
+            for (int pairIndex = 0; pairIndex < teamCount / 2; pairIndex++) {
+                Team home = rotation.get(pairIndex);
+                Team away = rotation.get(teamCount - 1 - pairIndex);
                 if (home == null || away == null) {
                     continue;
                 }
-                String matchId = "M" + nextMatchNumber++;
-                Match match = new Match(matchId, home.id(), away.id());
-                matches.put(matchId, match);
-                created.add(match);
-                roundMatchIds.add(matchId);
+                Match match = createMatch(home.id(), away.id());
+                createdMatches.add(match);
+                roundMatchIds.add(match.id());
             }
             rounds.add(roundMatchIds);
 
@@ -110,14 +104,13 @@ public class League {
             rotation.add(1, last);
         }
 
-        return created;
+        return createdMatches;
     }
 
     public List<Match> scheduleKnockout() {
         ensureFormat(CompetitionFormat.KNOCKOUT);
         validateKnockoutTeamCount();
-        List<Team> participants = new ArrayList<>(teams.values());
-        return createKnockoutRound(participants);
+        return createKnockoutBracket(new ArrayList<>(teams.values()));
     }
 
     public Match findMatch(String matchId) {
@@ -136,7 +129,7 @@ public class League {
         match.recordScore(score);
 
         if (format == CompetitionFormat.KNOCKOUT) {
-            createNextKnockoutRoundIfReady();
+            advanceWinnerToNextKnockoutRound(matchId);
         }
         return match;
     }
@@ -160,12 +153,11 @@ public class League {
     }
 
     public int currentRoundIndex() {
-        for (int i = 0; i < rounds.size(); i++) {
-            List<String> ids = rounds.get(i);
-            for (String id : ids) {
-                Match match = matches.get(id);
-                if (match != null && !match.isPlayed()) {
-                    return i;
+        for (int roundIndex = 0; roundIndex < rounds.size(); roundIndex++) {
+            for (String matchId : rounds.get(roundIndex)) {
+                Match match = matches.get(matchId);
+                if (match != null && match.hasAssignedTeams() && !match.isPlayed()) {
+                    return roundIndex;
                 }
             }
         }
@@ -173,7 +165,7 @@ public class League {
     }
 
     public Team champion() {
-        if (format != CompetitionFormat.KNOCKOUT || currentRoundIndex() != -1 || rounds.isEmpty()) {
+        if (format != CompetitionFormat.KNOCKOUT || rounds.isEmpty()) {
             return null;
         }
         List<Match> finalRound = round(rounds.size() - 1);
@@ -181,10 +173,12 @@ public class League {
             return null;
         }
         Match finalMatch = finalRound.get(0);
-        String winnerId = finalMatch.score().home() > finalMatch.score().away()
-                ? finalMatch.homeTeamId()
-                : finalMatch.awayTeamId();
+        String winnerId = winnerIdOf(finalMatch);
         return teams.get(winnerId);
+    }
+
+    private String normalize(String name) {
+        return name == null ? "" : name.trim().toLowerCase();
     }
 
     private void validateKnockoutTeamCount() {
@@ -207,8 +201,18 @@ public class League {
         }
     }
 
-    private List<Match> createKnockoutRound(List<Team> participants) {
-        List<Match> created = new ArrayList<>();
+    private List<Match> createKnockoutBracket(List<Team> participants) {
+        List<Match> firstRound = createInitialKnockoutRound(participants);
+        int matchesInNextRound = firstRound.size() / 2;
+        while (matchesInNextRound >= 1) {
+            createEmptyKnockoutRound(matchesInNextRound);
+            matchesInNextRound /= 2;
+        }
+        return firstRound;
+    }
+
+    private List<Match> createInitialKnockoutRound(List<Team> participants) {
+        List<Match> createdMatches = new ArrayList<>();
         List<String> roundMatchIds = new ArrayList<>();
 
         int left = 0;
@@ -216,40 +220,66 @@ public class League {
         while (left < right) {
             Team home = participants.get(left++);
             Team away = participants.get(right--);
-            String matchId = "M" + nextMatchNumber++;
-            Match match = new Match(matchId, home.id(), away.id());
-            matches.put(matchId, match);
-            created.add(match);
-            roundMatchIds.add(matchId);
+            Match match = createMatch(home.id(), away.id());
+            createdMatches.add(match);
+            roundMatchIds.add(match.id());
         }
 
-        if (!roundMatchIds.isEmpty()) {
-            rounds.add(roundMatchIds);
-        }
-        return created;
+        rounds.add(roundMatchIds);
+        return createdMatches;
     }
 
-    private void createNextKnockoutRoundIfReady() {
-        if (rounds.isEmpty()) {
+    private void createEmptyKnockoutRound(int numberOfMatches) {
+        List<String> roundMatchIds = new ArrayList<>();
+        for (int index = 0; index < numberOfMatches; index++) {
+            Match match = createMatch(null, null);
+            roundMatchIds.add(match.id());
+        }
+        rounds.add(roundMatchIds);
+    }
+
+    private Match createMatch(String homeTeamId, String awayTeamId) {
+        String matchId = "M" + nextMatchNumber++;
+        Match match = new Match(matchId, homeTeamId, awayTeamId);
+        matches.put(matchId, match);
+        return match;
+    }
+
+    private void advanceWinnerToNextKnockoutRound(String playedMatchId) {
+        int roundIndex = roundIndexOf(playedMatchId);
+        if (roundIndex < 0 || roundIndex >= rounds.size() - 1) {
             return;
         }
 
-        List<Match> currentRound = round(rounds.size() - 1);
-        if (currentRound.isEmpty() || currentRound.stream().anyMatch(match -> !match.isPlayed())) {
-            return;
-        }
-        if (currentRound.size() == 1) {
+        int matchIndex = rounds.get(roundIndex).indexOf(playedMatchId);
+        if (matchIndex < 0) {
             return;
         }
 
-        List<Team> winners = new ArrayList<>();
-        for (Match match : currentRound) {
-            String winnerId = match.score().home() > match.score().away()
-                    ? match.homeTeamId()
-                    : match.awayTeamId();
-            winners.add(teams.get(winnerId));
-        }
+        Match playedMatch = matches.get(playedMatchId);
+        String winnerId = winnerIdOf(playedMatch);
 
-        createKnockoutRound(winners);
+        String nextMatchId = rounds.get(roundIndex + 1).get(matchIndex / 2);
+        Match nextMatch = matches.get(nextMatchId);
+        if (matchIndex % 2 == 0) {
+            nextMatch.assignHomeTeam(winnerId);
+            return;
+        }
+        nextMatch.assignAwayTeam(winnerId);
+    }
+
+    private String winnerIdOf(Match match) {
+        return match.score().home() > match.score().away()
+                ? match.homeTeamId()
+                : match.awayTeamId();
+    }
+
+    private int roundIndexOf(String matchId) {
+        for (int roundIndex = 0; roundIndex < rounds.size(); roundIndex++) {
+            if (rounds.get(roundIndex).contains(matchId)) {
+                return roundIndex;
+            }
+        }
+        return -1;
     }
 }

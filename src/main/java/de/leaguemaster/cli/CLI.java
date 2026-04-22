@@ -1,13 +1,13 @@
 package de.leaguemaster.cli;
 
-
-import de.leaguemaster.application.usecase.GameModeSelectionService;
+import de.leaguemaster.cli.commands.ExitCommand;
 import de.leaguemaster.cli.commands.HelpCommand;
 import de.leaguemaster.cli.modes.GameMode;
+import de.leaguemaster.cli.modes.StartMode;
 import de.leaguemaster.cli.parser.CommandSpec;
 
-import java.util.Scanner;
 import java.util.List;
+import java.util.Scanner;
 
 public class CLI {
     private final CommandParser parser;
@@ -24,9 +24,7 @@ public class CLI {
     public void start() {
         System.out.println("Willkommen bei LeagueMaster!");
         System.out.println("Tippe 'help' um Befehle anzuzeigen.");
-        GameModeSelectionService gMSS = new GameModeSelectionService(this, factory);
-        parser.registerAll(baseCommands());
-        parser.registerAll(gMSS.execute());
+        enterMode(new StartMode(factory));
         while (true) {
             System.out.print("> ");
             String input = scanner.nextLine().trim();
@@ -55,11 +53,14 @@ public class CLI {
                         "help",
                         new HelpCommand(parser::help),
                         "Zeigt diese Hilfe an.",
-                        "?")
+                        "?"
+                ),
+                new CommandSpec(
+                        "exit",
+                        new ExitCommand(() -> new StartMode(factory)),
+                        "Geht zur Modusauswahl zurueck.",
+                        "back"
+                )
         );
-    }
-    public void readInput(){
-        String input = scanner.nextLine().trim();
-        parser.handle(input);
     }
 }

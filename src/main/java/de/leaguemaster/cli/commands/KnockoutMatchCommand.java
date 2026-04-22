@@ -28,7 +28,7 @@ public class KnockoutMatchCommand implements Command {
         }
 
         if (ctx.getCurrentLeagueId() == null) {
-            return CommandResult.invalid("Kein aktives Turnier. Nutze: league create");
+            return CommandResult.invalid("Kein aktives Turnier. Nutze: create --name <NAME>");
         }
 
         if (action.equalsIgnoreCase("list")) {

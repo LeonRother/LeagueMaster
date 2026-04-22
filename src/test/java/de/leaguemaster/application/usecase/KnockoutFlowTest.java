@@ -12,12 +12,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class KnockoutFlowTest {
 
     @Test
-    void createsNextRoundAndChampionForKnockoutBracket() {
+    void advancesWinnerImmediatelyAndDeterminesChampionForKnockoutBracket() {
         InMemoryLeagueRepository repository = new InMemoryLeagueRepository();
         CreateLeagueService createLeagueService = new CreateLeagueService(repository);
         AddTeamService addTeamService = new AddTeamService(repository);
@@ -31,14 +32,26 @@ public class KnockoutFlowTest {
         List<Match> semiFinals = scheduleMatchesService.knockout(leagueId);
         assertEquals(2, semiFinals.size());
 
+        League leagueAfterSchedule = leagueQueryService.byId(leagueId);
+        Match finalBeforeResults = leagueAfterSchedule.round(1).get(0);
+        assertNull(finalBeforeResults.homeTeamId());
+        assertNull(finalBeforeResults.awayTeamId());
+
         recordMatchResultService.execute(leagueId, semiFinals.get(0).id(), 2, 0);
+
+        League leagueAfterFirstSemiFinal = leagueQueryService.byId(leagueId);
+        Match finalAfterFirstSemiFinal = leagueAfterFirstSemiFinal.round(1).get(0);
+        assertEquals(teams.get(0).id(), finalAfterFirstSemiFinal.homeTeamId());
+        assertNull(finalAfterFirstSemiFinal.awayTeamId());
+
         recordMatchResultService.execute(leagueId, semiFinals.get(1).id(), 0, 3);
 
         League leagueAfterSemiFinals = leagueQueryService.byId(leagueId);
-        List<Match> finalRound = leagueAfterSemiFinals.round(1);
-        assertEquals(1, finalRound.size());
+        Match finalMatch = leagueAfterSemiFinals.round(1).get(0);
+        assertEquals(teams.get(0).id(), finalMatch.homeTeamId());
+        assertEquals(teams.get(3).id(), finalMatch.awayTeamId());
 
-        recordMatchResultService.execute(leagueId, finalRound.get(0).id(), 4, 1);
+        recordMatchResultService.execute(leagueId, finalMatch.id(), 4, 1);
 
         League completedLeague = leagueQueryService.byId(leagueId);
         assertEquals(teams.get(0).name(), completedLeague.champion().name());

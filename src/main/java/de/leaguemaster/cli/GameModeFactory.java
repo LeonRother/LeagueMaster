@@ -55,8 +55,6 @@ public class GameModeFactory {
                         recordMatchResultService,
                         leagueQueryService
                 );
-            case GROUP_STAGE:
-  //              return new GroupStageMode(scanner /* , services... */);
             default:
                 throw new IllegalArgumentException("Unbekannter Modus: " + type);
         }

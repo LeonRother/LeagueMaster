@@ -3,8 +3,7 @@ package de.leaguemaster.cli;
 // domain/gamemode/GameModeType.java
 public enum GameModeType {
     LEAGUE("League", "Liga mit Spieltagen und Tabelle."),
-    KNOCKOUT("Knockout", "KO-Turnier mit Brackets."),
-    GROUP_STAGE("Group Stage", "Gruppenphase mit anschließender Qualifikation.");
+    KNOCKOUT("Knockout", "KO-Turnier mit Brackets.");
 
     private final String displayName;
     private final String description;
