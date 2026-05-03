@@ -103,7 +103,7 @@ packages_for() {
             [ "$missing_maven" = "true" ] && packages="$packages maven"
             ;;
         dnf|yum)
-            [ "$missing_java" = "true" ] && packages="$packages java-21-openjdk"
+            [ "$missing_java" = "true" ] && packages="$packages java-21-openjdk-devel"
             [ "$missing_maven" = "true" ] && packages="$packages maven"
             ;;
         pacman)
